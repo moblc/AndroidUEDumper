@@ -12,33 +12,47 @@ TUObjectArray* ObjObjects = NULL;
 
 #define _WORD  uint16_t
 #define WORD1(x)   (*((_WORD*)&(x)+1))
+//4.23
+// string FNamePool::GetName(uint32_t index)
+// {
 
+//     unsigned int Block = index >> 16;
+//     unsigned short int Offset = index & 65535;
+
+//     uintptr_t FNamePool = AddrGNames;
+
+//     auto NamePoolChunk = Read<uintptr_t>(FNamePool+0x40 + (Block * 0x8));
+
+//     uintptr_t FNameEntry = NamePoolChunk + (0x2 * Offset);
+
+//     auto FNameEntryHeader = Read<short int>(FNameEntry);
+//     uintptr_t StrPtr = FNameEntry + 0x2;
+
+//     int StrLength = FNameEntryHeader >> 6;
+//     if (StrLength > 0 && StrLength < 250) {
+//         string name(StrLength, '\0');
+//         vm_readv((void*)StrPtr, name.data(), StrLength * sizeof(char));
+//         name.shrink_to_fit();
+//         return name;
+//     } else {
+//         return "None";
+//     }
+// }
+//4.18
 string FNamePool::GetName(uint32_t index)
 {
-
-    unsigned int Block = index >> 16;
-    unsigned short int Offset = index & 65535;
-
-    uintptr_t FNamePool = AddrGNames;
-
-    auto NamePoolChunk = Read<uintptr_t>(FNamePool+0x40 + (Block * 0x8));
-
-    uintptr_t FNameEntry = NamePoolChunk + (0x2 * Offset);
-
-    auto FNameEntryHeader = Read<short int>(FNameEntry);
-    uintptr_t StrPtr = FNameEntry + 0x2;
-
-    int StrLength = FNameEntryHeader >> 6;
-    if (StrLength > 0 && StrLength < 250) {
-        string name(StrLength, '\0');
-        vm_readv((void*)StrPtr, name.data(), StrLength * sizeof(char));
-        name.shrink_to_fit();
+    uintptr_t G_Names = Read<uintptr_t>(AddrGNames);
+    int Id = (int)(index / (int)0x4000);
+    int Idtemp = (int)(index % (int)0x4000);
+    auto NamePtr = Read<uintptr_t>((G_Names + Id * 8));
+    auto Name = Read<uintptr_t>((NamePtr + 8 * Idtemp));
+    char name[0x100] = { 0 };
+    if (vm_readv((void*)(Name + 0xC), name, 0x100)) 
+    {
         return name;
-    } else {
-        return "None";
     }
+    return {};
 }
-
 uint32_t TUObjectArray::GetNumChunks()
 {
 	return Read<uint32_t>(this + Offsets.TUObjectArray.NumChunks);
